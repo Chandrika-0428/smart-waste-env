@@ -2,6 +2,11 @@
 name = "smart-waste-env"
 version = "1.0.0"
 description = "Smart Waste Management Environment"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "openenv-core>=0.2.0"
+]
 
-[tool.openenv]
-entrypoint = "src.api:app"
+[project.scripts]
+server = "server.app:app"
