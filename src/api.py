@@ -31,9 +31,19 @@ def _get_env(task_mode: str) -> WasteManagementEnv:
 
 
 class ResetRequest(BaseModel):
-    task_mode: str = Field(default="easy", description="Task difficulty: easy, medium, hard")
-    seed: int = Field(default=42, description="Random seed for reproducibility")
+    task_mode: str = Field(default="easy")
+    seed: int = Field(default=42)
 
+@app.post("/reset", response_model=ObservationModel, tags=["environment"])
+def reset(request: ResetRequest = None):
+    if request is None:
+        request = ResetRequest()
+    if request.task_mode not in VALID_TASK_MODES:
+        raise HTTPException(status_code=422, detail=f"task_mode must be one of {VALID_TASK_MODES}")
+    env = WasteManagementEnv(task_mode=request.task_mode, seed=request.seed)
+    _envs[request.task_mode] = env
+    obs = env.reset()
+    return ObservationModel(**obs)
 
 class ActionModel(BaseModel):
     action: int = Field(
