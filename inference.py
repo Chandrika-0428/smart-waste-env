@@ -7,10 +7,10 @@ Runs all 3 tasks: easy, medium, hard.
 Prints exact required log format.
 
 Environment variables:
-  API_BASE_URL  — base URL of the running API (default: http://localhost:8000)
-  MODEL_NAME    — agent model name label (default: random-baseline)
-  HF_TOKEN      — Hugging Face token (optional, for authenticated spaces)
-"""
+  API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
+    MODEL_NAME   = os.environ.get("MODEL_NAME", "random-baseline")
+    HF_TOKEN     = os.environ.get("HF_TOKEN")
+  """
 
 import os
 import random
