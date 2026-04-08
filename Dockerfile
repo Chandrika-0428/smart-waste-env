@@ -1,17 +1,15 @@
-# Use official Python image
-FROM python:3.10
+FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Copy files
-COPY . .
-
-# Install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
+COPY . .
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
 EXPOSE 8000
 
-# Run API
 CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]
