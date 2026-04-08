@@ -215,3 +215,7 @@ def list_tasks():
             }
         ]
     }
+
+@app.get("/")
+def root():
+    return {"message": "Smart Waste Env is running"}
