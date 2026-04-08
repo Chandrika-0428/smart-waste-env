@@ -19,7 +19,7 @@ import requests
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000").rstrip("/")
 MODEL_NAME = os.environ.get("MODEL_NAME", "random-baseline")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
 HEADERS = {}
 if HF_TOKEN:
