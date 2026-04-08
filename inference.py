@@ -80,8 +80,8 @@ def select_action(observation: dict, task_mode: str) -> int:
 def run_task(task_mode: str):
     rng = random.Random(SEED)
 
-    print(f"[START] task={task_mode} model={MODEL_NAME} api={API_BASE_URL}")
-
+    print("[START]")
+    print(f"task={task_mode} model={MODEL_NAME} api={API_BASE_URL}")
     obs = reset_env(task_mode)
 
     total_reward = 0.0
@@ -113,14 +113,11 @@ def run_task(task_mode: str):
     grade = get_grade(task_mode)
 
     print(
-        f"[END] task={task_mode} "
-        f"steps={step_num} "
-        f"total_reward={total_reward:.4f} "
-        f"avg_reward={total_reward/max(step_num,1):.4f} "
-        f"grade={grade['score']:.4f} "
-        f"grader={grade['grader']}"
+    f"task={task_mode} steps={step_num} total_reward={total_reward:.4f} "
+    f"avg_reward={total_reward/max(step_num,1):.4f} "
+    f"grade={grade['score']:.4f} grader={grade['grader']}"
     )
-    print()
+    print("[END]")
 
 
 def wait_for_api(max_retries: int = 10, delay: float = 1.0):
