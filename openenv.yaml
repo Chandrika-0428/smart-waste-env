@@ -1,0 +1,79 @@
+id: smart-waste-management-env
+name: Smart Waste Management Environment
+version: "1.0.0"
+description: >
+  A reinforcement learning environment where an AI agent learns to route
+  waste to the correct facility, optimizing for correctness, cost efficiency,
+  and environmental impact across a simulated city waste management system.
+
+endpoints:
+  reset:
+    method: POST
+    path: /reset
+    description: Reset the environment and return initial observation
+  step:
+    method: POST
+    path: /step
+    description: Take an action and return observation, reward, done, info
+  state:
+    method: GET
+    path: /state
+    description: Return current environment state
+
+tasks:
+  - id: easy
+    name: Waste Classification
+    description: >
+      Route each waste item to the correct facility type.
+      Reward is based on correctness only.
+    difficulty: easy
+    max_steps: 20
+    reward_range: [0.0, 1.0]
+    action_space: {type: discrete, n: 5}
+    grader: correctness_grader
+
+  - id: medium
+    name: Cost-Efficient Routing
+    description: >
+      Route waste correctly while minimizing transport and processing costs.
+      Reward combines correctness and cost efficiency.
+    difficulty: medium
+    max_steps: 20
+    reward_range: [0.0, 1.0]
+    action_space: {type: discrete, n: 5}
+    grader: efficiency_grader
+
+  - id: hard
+    name: Sustainable Waste Optimization
+    description: >
+      Route waste optimally while balancing correctness, cost, and
+      environmental impact including CO2 emissions and recycling rate.
+    difficulty: hard
+    max_steps: 20
+    reward_range: [0.0, 1.0]
+    action_space: {type: discrete, n: 5}
+    grader: sustainability_grader
+
+metadata:
+  author: Smart Waste Team
+  tags:
+    - waste-management
+    - sustainability
+    - logistics
+    - reinforcement-learning
+  action_space:
+    type: discrete
+    n: 5
+    labels:
+      - Recycling Plant
+      - Compost Facility
+      - Landfill
+      - Hazardous Facility
+      - Energy Recovery
+  observation_space:
+    type: box
+    shape: [12]
+    description: >
+      [waste_type, quantity, zone, time_of_day, recycling_rate,
+       cap_recycling, cap_compost, cap_landfill, cap_hazardous,
+       cap_energy, episode_step, co2_budget]
