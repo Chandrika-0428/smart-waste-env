@@ -1,12 +1,23 @@
 [project]
 name = "smart-waste-env"
 version = "1.0.0"
-description = "Smart Waste Management Environment"
+description = "Smart Waste Management RL Environment for OpenEnv"
+requires-python = ">=3.11"
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "openenv-core>=0.2.0"
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "pydantic>=2.0.0",
+    "numpy>=1.26.0",
+    "requests>=2.31.0",
+    "openenv-core>=0.2.0",
 ]
 
 [project.scripts]
-server = "server.app:app"
+server = "server.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "server"]
