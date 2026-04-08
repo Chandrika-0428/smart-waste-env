@@ -1,3 +1,11 @@
+---
+title: smart-waste-env
+emoji: ♻️
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
 # Smart Waste Management Environment
 
 An OpenEnv-compatible reinforcement learning environment where an AI agent learns to route waste to the correct facility, optimizing for correctness, cost efficiency, and environmental sustainability.
