@@ -1,17 +1,3 @@
-"""
-inference.py — Smart Waste Management Environment
-Baseline inference script for OpenEnv hackathon submission.
-
-Calls the FastAPI endpoints (not the env directly).
-Runs all 3 tasks: easy, medium, hard.
-Prints exact required log format.
-
-Environment variables:
-  API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
-    MODEL_NAME   = os.environ.get("MODEL_NAME", "random-baseline")
-    HF_TOKEN     = os.environ.get("HF_TOKEN")
-  """
-
 import os
 import random
 import time
@@ -21,7 +7,7 @@ API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000").rstrip("/
 MODEL_NAME = os.environ.get("MODEL_NAME", "random-baseline")
 HF_TOKEN = os.environ.get("HF_TOKEN")
 
-HEADERS = {}
+HEADERS = {"Content-Type": "application/json"}
 if HF_TOKEN:
     HEADERS["Authorization"] = f"Bearer {HF_TOKEN}"
 
@@ -29,13 +15,15 @@ TASK_MODES = ["easy", "medium", "hard"]
 N_STEPS = 20
 SEED = 42
 
+OPTIMAL = {0: 0, 1: 1, 2: 0, 3: 0, 4: 3, 5: 4}
+
 
 def reset_env(task_mode: str) -> dict:
     resp = requests.post(
         f"{API_BASE_URL}/reset",
         json={"task_mode": task_mode, "seed": SEED},
         headers=HEADERS,
-        timeout=10,
+        timeout=15,
     )
     resp.raise_for_status()
     return resp.json()
@@ -46,11 +34,9 @@ def step_env(task_mode: str, action: int) -> dict:
         f"{API_BASE_URL}/step",
         json={"action": action, "task_mode": task_mode},
         headers=HEADERS,
-        timeout=10,
+        timeout=15,
     )
     resp.raise_for_status()
-    assert "application/json" in resp.headers.get("content-type", ""), \
-        f"Expected JSON response, got: {resp.headers.get('content-type')}"
     return resp.json()
 
 
@@ -59,87 +45,92 @@ def get_grade(task_mode: str) -> dict:
         f"{API_BASE_URL}/grade",
         params={"task_mode": task_mode},
         headers=HEADERS,
-        timeout=10,
+        timeout=15,
     )
     resp.raise_for_status()
     return resp.json()
 
 
-def select_action(observation: dict, task_mode: str) -> int:
-    """
-    Heuristic baseline agent.
-    Uses waste type to pick the most likely correct facility.
-    """
-    OPTIMAL = {0: 0, 1: 1, 2: 0, 3: 0, 4: 3, 5: 4}
-    waste_type = observation.get("waste_type", 0)
-    if random.random() < 0.2:
+def select_action(observation: dict) -> int:
+    obs_data = observation.get("observation", observation)
+
+    if isinstance(obs_data, dict):
+        waste_type = obs_data.get("waste_type", 0)
+    else:
+        waste_type = round(obs_data[0] * 5) if obs_data else 0
+
+    if random.random() < 0.15:
         return random.randint(0, 4)
-    return OPTIMAL.get(waste_type, random.randint(0, 4))
+
+    return OPTIMAL.get(int(waste_type), random.randint(0, 4))
 
 
 def run_task(task_mode: str):
-    rng = random.Random(SEED)
+    rewards = []
+    error_msg = None
 
-    print("[START]")
-    print(f"task={task_mode} model={MODEL_NAME} api={API_BASE_URL}")
-    obs = reset_env(task_mode)
+    print(f"[START] task={task_mode} env=smart-waste-management-env model={MODEL_NAME}")
 
-    total_reward = 0.0
-    done = False
-    step_num = 0
+    try:
+        result = reset_env(task_mode)
+        obs = result.get("observation", result)
 
-    while not done and step_num < N_STEPS:
-        action = select_action(obs, task_mode)
-        result = step_env(task_mode, action)
+        done = False
+        step_num = 0
 
-        obs = result["observation"]
-        reward = result["reward"]
-        done = result["done"]
-        info = result["info"]
+        while not done and step_num < N_STEPS:
+            action = select_action(obs)
 
-        step_num += 1
-        total_reward += reward
+            try:
+                step_result = step_env(task_mode, action)
+                obs = step_result.get("observation", {})
+                reward = float(step_result.get("reward", 0.0))
+                done = bool(step_result.get("done", False))
 
-        print(
-            f"[STEP] step={step_num} "
-            f"action={action} "
-            f"facility={info['facility_chosen']} "
-            f"waste={info['waste_type']} "
-            f"correct={info['is_correct']} "
-            f"reward={reward:.4f} "
-            f"done={done}"
-        )
+                rewards.append(reward)
+                step_num += 1
 
-    grade = get_grade(task_mode)
+                print(
+                    f"[STEP] step={step_num} "
+                    f"action={action} "
+                    f"reward={reward:.2f} "
+                    f"done={str(done).lower()} "
+                    f"error=null"
+                )
+
+            except Exception as e:
+                error_msg = str(e)
+                rewards.append(0.0)
+                step_num += 1
+
+                print(
+                    f"[STEP] step={step_num} "
+                    f"action={action} "
+                    f"reward=0.00 "
+                    f"done=false "
+                    f"error={error_msg}"
+                )
+                break
+
+    except Exception as e:
+        error_msg = str(e)
+
+    grade = get_grade(task_mode) if error_msg is None else {"score": 0.0}
+    score = float(grade.get("score", 0.0))
+    score = max(0.0, min(score, 1.0))
+
+    success = score >= 0.1
+    steps = len(rewards)
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 
     print(
-    f"task={task_mode} steps={step_num} total_reward={total_reward:.4f} "
-    f"avg_reward={total_reward/max(step_num,1):.4f} "
-    f"grade={grade['score']:.4f} grader={grade['grader']}"
-    )
-    print("[END]")
-
-
-def wait_for_api(max_retries: int = 10, delay: float = 1.0):
-    for attempt in range(max_retries):
-        try:
-            resp = requests.get(f"{API_BASE_URL}/health", timeout=5)
-            if resp.status_code == 200:
-                return True
-        except requests.exceptions.ConnectionError:
-            pass
-        time.sleep(delay)
-    raise RuntimeError(
-        f"API at {API_BASE_URL} did not become ready after {max_retries} retries."
+        f"[END] success={str(success).lower()} "
+        f"steps={steps} "
+        f"score={score:.3f} "
+        f"rewards={rewards_str}"
     )
 
 
 if __name__ == "__main__":
-    print(f"Connecting to API: {API_BASE_URL}")
-    wait_for_api()
-    print(f"API ready. Running inference with model={MODEL_NAME}\n")
-
     for task in TASK_MODES:
         run_task(task)
-
-    print("All tasks complete.")
